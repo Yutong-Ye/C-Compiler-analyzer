@@ -1,4 +1,4 @@
-# C Lexical Analyzer
+# C++ Lexical Analyzer
 
 This is a simple lexical analyzer written in C++ that scans a source code file written in the C programming language and identifies various tokens such as:
 
