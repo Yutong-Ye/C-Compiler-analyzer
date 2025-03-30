@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <ctype.h>
 
+/*Write a formal description of the token patterns of the language using a descriptive language related to regular expressions.1 These descriptions are used as input to a software tool that automatically generates a lexical analyzer. There are many such tools available for this. The oldest of these, named lex, is commonly included as part of UNIX systems.
+Design a state transition diagram that describes the token patterns of the language and write a program that implements the diagram.
+Design a state transition diagram that describes the token patterns of the language and hand-construct a table-driven implementation of the state diagram.*/
 /* Global declarations */
 /* Variables */
 int charClass;
