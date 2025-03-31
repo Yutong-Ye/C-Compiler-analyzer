@@ -3,10 +3,11 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#include <string.h>
 
-/*Write a formal description of the token patterns of the language using a descriptive language related to regular expressions.1 These descriptions are used as input to a software tool that automatically generates a lexical analyzer. There are many such tools available for this. The oldest of these, named lex, is commonly included as part of UNIX systems.
-Design a state transition diagram that describes the token patterns of the language and write a program that implements the diagram.
-/* Variables */
+
+/*Global variables declarations*/
+
 int charClass;
 char lexeme[100];
 char nextChar;
@@ -20,6 +21,10 @@ void addChar();
 void getChar();
 void getNonBlank();
 int lex();
+void expr();       // Add this
+void term();       // Add this
+void factor();     // Add this
+
 
 /* Character classes */
 #define LETTER 0
@@ -36,34 +41,76 @@ int lex();
 #define DIV_OP 24
 #define LEFT_PAREN 25
 #define RIGHT_PAREN 26
+#define MOD_OP 27
 
 /******************************************************/
 /* main driver */
 int main() {
     /* Open the input data file and process its contents */
-    if ((in_fp = fopen("ParseTree1.cpp", "r")) == NULL) {
-        printf("ERROR - cannot open ParseTree1.cpp\n");
-    } else {
-        getChar();
-        do {
-            lex();
-        } while (nextToken != EOF);
+    if ((in_fp = fopen("ParseTree2.cpp", "r")) == NULL) {
+        printf("ERROR - cannot open ParseTree2.cpp\n");
+        return 1;
     }
+    
+    getChar();
+    lex();       // Get first token
+    expr();      // Start parsing
+    
+    fclose(in_fp);
     return 0;
 }
 
 /*****************************************************/
-/* lookup - a function to lookup operators and parentheses and return the token */
+/* expr - parses expressions according to EBNF rule:
+   <expr> → <term> { (+ | -) <term> } */
+void expr() {
+    printf("Enter <expr>\n");
+    term();
+    while (nextToken == ADD_OP || nextToken == SUB_OP) {
+        lex();
+        term();
+    }
+    printf("Exit <expr>\n");
+}
+
+/*****************************************************/
+/* term - parses terms according to EBNF rule:
+   <term> → <factor> { (* | / | %) <factor> } */
+void term() {
+    printf("Enter <term>\n");
+    factor();
+    while (nextToken == MULT_OP || nextToken == DIV_OP || nextToken == MOD_OP) {
+        lex();
+        factor();
+    }
+    printf("Exit <term>\n");
+}
+
+/*****************************************************/
+/* factor - parses factors according to EBNF rule:
+   <factor> → <ident> | <intconst> | (<expr>) */
+void factor() {
+    printf("Enter <factor>\n");
+    if (nextToken == IDENT || nextToken == INT_LIT) {
+        lex();
+    } else if (nextToken == LEFT_PAREN) {
+        lex();
+        expr();
+        if (nextToken == RIGHT_PAREN) {
+            lex();
+        } else {
+            printf("Error - missing right parenthesis\n");
+        }
+    } else {
+        printf("Error - invalid factor\n");
+    }
+    printf("Exit <factor>\n");
+}
+
+/*****************************************************/
+/* lookup - extended to include modulus operator */
 int lookup(char ch) {
     switch (ch) {
-        case '(':
-            addChar();
-            nextToken = LEFT_PAREN;
-            break;
-        case ')':
-            addChar();
-            nextToken = RIGHT_PAREN;
-            break;
         case '+':
             addChar();
             nextToken = ADD_OP;
@@ -79,6 +126,18 @@ int lookup(char ch) {
         case '/':
             addChar();
             nextToken = DIV_OP;
+            break;
+        case '%':  // NEW: Modulus operator
+            addChar();
+            nextToken = MOD_OP;
+            break;
+        case '(':
+            addChar();
+            nextToken = LEFT_PAREN;
+            break;
+        case ')':
+            addChar();
+            nextToken = RIGHT_PAREN;
             break;
         default:
             addChar();
@@ -124,16 +183,17 @@ void getNonBlank() {
 }
 
 /*****************************************************/
-/* lex - a simple lexical analyzer for arithmetic expressions */
+/* lex - an enhanced lexical analyzer for arithmetic expressions */
 int lex() {
-    lexLen = 0;
-    getNonBlank();
+    lexLen = 0;          // Reset lexeme length for new token
+    getNonBlank();       // Skip whitespace
 
     switch (charClass) {
         /* Parse identifiers */
         case LETTER:
-            addChar();
-            getChar();
+            addChar();   // Add first alphabetic character
+            getChar();   // Get next character
+            // Continue while we have letters or digits
             while (charClass == LETTER || charClass == DIGIT) {
                 addChar();
                 getChar();
@@ -143,8 +203,9 @@ int lex() {
         
         /* Parse integer literals */
         case DIGIT:
-            addChar();
-            getChar();
+            addChar();   // Add first digit
+            getChar();   // Get next character
+            // Continue while we have digits
             while (charClass == DIGIT) {
                 addChar();
                 getChar();
@@ -152,22 +213,37 @@ int lex() {
             nextToken = INT_LIT;
             break;
         
-        /* Parentheses and operators */
+        /* Handle operators, parentheses, and unknown characters */
         case UNKNOWN:
-            lookup(nextChar);
-            getChar();
+            // Handle known operators/symbols
+            if (nextChar == '+' || nextChar == '-' || nextChar == '*' || 
+                nextChar == '/' || nextChar == '%' || 
+                nextChar == '(' || nextChar == ')') {
+                lookup(nextChar);  // Sets nextToken
+                getChar();         // Move to next character
+            } 
+            // Handle unrecognized characters
+            else {
+                printf("Error: Unrecognized character '%c'\n", nextChar);
+                addChar();
+                nextToken = UNKNOWN;
+                getChar();
+            }
             break;
         
-        /* EOF */
+        /* Handle end of file */
         case EOF:
             nextToken = EOF;
-            lexeme[0] = 'E';
-            lexeme[1] = 'O';
-            lexeme[2] = 'F';
-            lexeme[3] = '\0';
+            strcpy(lexeme, "EOF");  // More reliable than manual assignment
             break;
-    } /* End of switch */
+    }
 
-    printf("Next token is: %d, Next lexeme is %s\n", nextToken, lexeme);
+    // Print token information (only if not EOF)
+    if (nextToken != EOF) {
+        printf("Token Code: %-3d\tLexeme: %s\n", nextToken, lexeme);
+    } else {
+        printf("End of file reached\n");
+    }
+    
     return nextToken;
-} /* End of function lex */
+}
