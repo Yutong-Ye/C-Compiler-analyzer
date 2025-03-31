@@ -1,3 +1,4 @@
+
 /* front.c - a lexical analyzer system for simple arithmetic expressions */
 
 #include <stdio.h>
@@ -40,8 +41,8 @@ int lex();
 /* main driver */
 int main() {
     /* Open the input data file and process its contents */
-    if ((in_fp = fopen("front.in", "r")) == NULL) {
-        printf("ERROR - cannot open front.in\n");
+    if ((in_fp = fopen("ParseTree1.cpp", "r")) == NULL) {
+        printf("ERROR - cannot open ParseTree1.cpp\n");
     } else {
         getChar();
         do {
