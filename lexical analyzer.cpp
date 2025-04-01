@@ -44,19 +44,36 @@ void factor();     // Add this
 #define MOD_OP 27
 
 /******************************************************/
-/* main driver */
+/******************************************************/
+/* main driver
+   This is the entry point of the program. It returns an int, typically 0 for success or 1 for failure.
+   Reads the first character from the input file by calling the getChar() function.
+   Extracts the first meaningful token before parsing begins by calling the lex() function.
+   Calls the expr() function to analyze the structure of the expression using recursive descent parsing,
+   based on EBNF grammar rules and the token stream created by lex().
+   Uses fclose(in_fp) and fclose(out_fp) to close the input and output files when done.
+*/
+
 int main() {
-    /* Open the input data file and process its contents */
-    if ((in_fp = fopen("ParseTree2.cpp", "r")) == NULL) {
-        printf("ERROR - cannot open ParseTree2.cpp\n");
+    if ((in_fp = fopen("ParseTree1.cpp", "r")) == NULL) {
+        printf("ERROR - cannot open flie\n");
         return 1;
     }
-    
-    getChar();
-    lex();       // Get first token
-    expr();      // Start parsing
-    
+
+    char outputFileName[] = "Ye_12012842.out";
+    out_fp = fopen(outputFileName, "w");
+    if (out_fp == NULL) {
+        printf("ERROR - cannot open output file\n");
+        fclose(in_fp);
+        return 1;
+    }
+
+    getChar();   // initialize
+    lex();       // fetch first token
+    expr();      // parse the full expression
+
     fclose(in_fp);
+    fclose(out_fp);
     return 0;
 }
 
