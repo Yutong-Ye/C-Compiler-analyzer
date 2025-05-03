@@ -1,6 +1,5 @@
-// C++ Lexical Analyzer + Syntax Analysis + Intermediate Code Generator 
+// C++ Lexical Analyzer + Syntax Analysis + Intermediate Code Generator + Syntax Tree Postorder Traversal
 // Project 2: Yutong Ye 12012842
-
 
 #include <iostream>
 #include <fstream>
@@ -29,6 +28,29 @@ struct Token {
     Token(TokenType t, const string& l) : type(t), lexeme(l) {}
 };
 
+// ------------------------ Tree Node for Syntax Tree --------------------------
+struct TreeNode {
+    string value;
+    bool isOperator;
+    TreeNode* left;
+    TreeNode* right;
+
+    TreeNode(string val, bool isOp = false) : value(val), isOperator(isOp), left(NULL), right(NULL) {}
+};
+
+// Postorder print of syntax tree
+void visitPrint(TreeNode* p) {
+    if (p)
+        cout << p->value << " ";
+}
+
+void postOrderPrint(TreeNode* p) {
+    if (!p) return;
+    if (p->left) postOrderPrint(p->left);
+    if (p->right) postOrderPrint(p->right);
+    visitPrint(p);
+}
+
 vector<Token> tokens;
 int currentIndex = 0;
 int ruleId = 1;
@@ -47,16 +69,12 @@ void exitRule(const string& name) {
 }
 
 Token peek() {
-    if (currentIndex >= (int)tokens.size()) {
-        return Token(END_OF_FILE, "EOF");
-    }
+    if (currentIndex >= (int)tokens.size()) return Token(END_OF_FILE, "EOF");
     return tokens[currentIndex];
 }
 
 Token advance() {
-    if (currentIndex >= (int)tokens.size()) {
-        return Token(END_OF_FILE, "EOF");
-    }
+    if (currentIndex >= (int)tokens.size()) return Token(END_OF_FILE, "EOF");
     return tokens[currentIndex++];
 }
 
@@ -188,6 +206,7 @@ void assign() {
     advance();
     match(ASSIGN_OP);
     bool_or_expr();
+    postfix.push_back(id.lexeme);
     postfix.push_back("=");
     exitRule("assign");
 }
@@ -196,74 +215,55 @@ void generateIC(const vector<string>& postfix) {
     cout << "\n-----------------------INTERMEDIATE CODE GENERATOR-----------------------" << endl;
     stack<string> s;
     char tempName = 'A';
-
     map<string, string> opMap;
-    opMap["+"] = "add";
-    opMap["-"] = "sub";
-    opMap["*"] = "mul";
-    opMap["/"] = "div";
-    opMap["&&"] = "band";
-    opMap["||"] = "bor";
+    opMap["+"] = "add"; opMap["-"] = "sub";
+    opMap["*"] = "mul"; opMap["/"] = "div";
+    opMap["&&"] = "band"; opMap["||"] = "bor";
     opMap["!"] = "bnot";
-    opMap["=="] = "req";
-    opMap["!="] = "rneq";
-    opMap["<"] = "rlt";
-    opMap["<="] = "rleq";
-    opMap[">"] = "rgt";
-    opMap[">="] = "rgeq";
+    opMap["=="] = "req"; opMap["!="] = "rneq";
+    opMap["<"] = "rlt"; opMap["<="] = "rleq";
+    opMap[">"] = "rgt"; opMap[">="] = "rgeq";
 
-    for (int i = 0; i < (int)postfix.size(); i++) {
+    for (int i = 0; i < postfix.size(); ++i) {
         string token = postfix[i];
-
-        // Assignment operator is handled last
         if (token == "=") {
             string rhs = s.top(); s.pop();
             string lhs = s.top(); s.pop();
-            cout << "top " << rhs << endl;
-            cout << "pop()\n";
-            cout << "top (" << lhs << ")\n";
-            cout << "pop()\n";
+            cout << "top " << rhs << endl << "pop()\n";
+            cout << "top " << lhs << endl << "pop()\n";
             cout << "assign " << lhs << ", " << rhs << endl;
-        }
-        // Operator case
-        else if (opMap.count(token)) {
+        } else if (opMap.count(token)) {
             string b = s.top(); s.pop();
             string a = s.top(); s.pop();
-            string temp = string(1, tempName++);
-            cout << "" << token << "" << endl;
-            cout << "top " << b << "\n";
-            cout << "pop()\n";
-            cout << "top " << a << "\n";
-            cout << "pop()\n";
+            string temp(1, tempName++);
+            cout << token << endl;
+            cout << "top " << b << "\npop()\n";
+            cout << "top " << a << "\npop()\n";
             cout << opMap[token] << ", " << a << ", " << b << ", " << temp << endl;
             cout << "push " << temp << endl;
             s.push(temp);
-        }
-        // Operand identifier or constant
-        else {
+        } else {
             cout << "push " << token << endl;
             s.push(token);
         }
     }
 }
 
-
-
 vector<Token> tokenize(const string& line) {
     vector<Token> result;
-    size_t i = 0;
-    while (i < line.length()) {
+    int i = 0;
+    while (i < (int)line.length()) {
         if (isspace(line[i])) { i++; continue; }
 
         if (isalpha(line[i]) || line[i] == '_') {
             string id;
-            while (i < line.length() && (isalnum(line[i]) || line[i] == '_')) {
+            while (i < (int)line.length() && (isalnum(line[i]) || line[i] == '_')) {
                 id += line[i++];
             }
             result.push_back(Token(IDENT, id));
         } else if (isdigit(line[i])) {
             string num;
-            while (i < line.length() && isdigit(line[i])) {
+            while (i < (int)line.length() && isdigit(line[i])) {
                 num += line[i++];
             }
             result.push_back(Token(INT_CONST, num));
@@ -309,32 +309,22 @@ int main() {
 
     string line;
     int assignmentNumber = 1;
-
     while (getline(fin, line)) {
         if (line.empty()) continue;
-
         cout << "\nProcessing line: " << line << endl;
         cout << "\n-----------------------START ASSIGNMENT " << assignmentNumber << "-----------------------" << endl;
-
         tokens = tokenize(line);
         currentIndex = 0;
         ruleId = 1;
         postfix.clear();
-
-        // cout << "Tokens found (" << tokens.size() << "):" << endl;
-        // for (size_t i = 0; i < tokens.size(); ++i) printToken(tokens[i]);
-
         cout << "-----------------------PARSING TREE-----------------------" << endl;
         assign();
-
         cout << "\n-----------------------POSTFIX EXPRESSION-----------------------\n";
-        for (size_t i = 0; i < postfix.size(); ++i) cout << postfix[i] << " ";
+        for (int i = 0; i < postfix.size(); ++i) cout << postfix[i] << " ";
         cout << endl;
-
         generateIC(postfix);
         cout << "\n-----------------------END Assignment " << assignmentNumber++ << "-----------------------\n";
     }
-
     fin.close();
     return 0;
 }
