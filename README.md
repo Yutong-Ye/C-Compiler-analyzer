@@ -56,6 +56,33 @@ Operator token codes
 //This line defines a special code −1 to represent the end of the input file, so the lexical analyzer knows when to stop reading characters.
 #define EOF_TOKEN         -1   
 
+enum TokenType is used in the lexical analyzer to tag input parts like IDENT or INT_CONST, so the syntax analyzer can correctly interpret them.
+
+The Token struct stores each token’s type and text, while vector<Token> tokens holds all tokens in order for parsing.
+
+The parser uses global variables:
+tokens for the token stream,
+currentIndex to track position,
+ruleId for grammar rule tracing,
+and postfix to build postfix expressions for code generation.
+
+enterRule(), exitRule(), and printToken() help trace the parser’s step-by-step flow and show exactly what’s being processed.
+
+nextToken() peeks at the current token, while lookahead() consumes it by advancing currentIndex.
+
+Expression parsing follows operator precedence:
+factor() handles basic elements (identifiers, numbers, parentheses),
+term() handles * and /,
+expr() handles + and -,
+and the rest (rel_expr, eq_expr, bool_and_expr, bool_or_expr) handle comparison and logical operators.
+
+assign() parses assignment statements like x = a + b * c, validates them, and converts them into postfix form for code generation.
+
+generateIC() turns the postfix into intermediate code using a stack and prints instructions like add, assign, bnot, etc., simulating how machines evaluate expressions.
+
+tokenize() is part of the lexical analyzer—it splits input into tokens by skipping spaces, grouping identifiers and numbers, recognizing multi- and single-character operators, and reporting any invalid characters.
+
+The main() function opens the file front.in, reads each line, tokenizes it, resets the parser state, parses the assignment, prints the postfix expression, generates intermediate code, and moves to the next line.
 
 ## How to Compile
 
